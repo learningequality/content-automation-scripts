@@ -1,0 +1,2 @@
+# Fabric fork with py3 support, faithful to the py27 API
+fab-classic==1.18.0
