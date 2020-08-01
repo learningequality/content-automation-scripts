@@ -20,20 +20,34 @@ from fabric.utils import puts
 from fabfiles.github import test_utility_function
 
 
-
-from fabfiles.gcp import inventory
-from fabfiles.gcp import create, delete
-from fabfiles.gcp import info, list_instances, checkdns, checkdiskspace
-
-
-
 # FAB SETTTINGS
 ################################################################################
-
 env.user = os.environ.get('USER')  # assume ur local username == remote username
+env.roledefs = {}  # combined roles from inventory and integrationservers
 
 
-env.roledefs = inventory
+
+
+# PROVISIONING
+################################################################################
+from fabfiles.gcp import inventory
+from fabfiles.gcp import create, delete
+from fabfiles.gcp import list_instances, checkdns, checkdiskspace
+from fabfiles.gcp import info, shell
+
+env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
+
+
+
+# PROXY SERVICE
+################################################################################
+from fabfiles.proxyservice import checkproxies, update_proxy_servers
+from fabfiles.proxyservice import install_squid_proxy, update_squid_proxy
+from fabfiles.proxyservice import uninstall_squid_proxy
+
+
+
+
 
 
 
