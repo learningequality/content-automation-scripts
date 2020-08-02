@@ -67,9 +67,8 @@ def install_squid_proxy():
     Note this rquires opening port 3128 on from the GCP console for this server,
     which can be done by applying the "Network tag" `allow-http-proxy-3128`.
     """
-
     with settings(warn_only=True), hide('stdout'):
-        sudo('apt-get update')
+        sudo('apt-get update -qq')
         sudo('apt-get -y install squid3')
     put('config/etc_squid_squid.conf', '/etc/squid/squid.conf', use_sudo=True)
     sudo('chown root:root /etc/squid/squid.conf')

@@ -1,6 +1,6 @@
 # Content Automation Scripts
 
-Central place to store content pipeline automation scripts.
+Content pipeline automation scripts -- everything is *fab*ulous when you've got Python on your side.
 
 
 
@@ -13,3 +13,12 @@ Install
 
 
  
+
+
+Further developments and possible niceties:
+  - Start using an inventory.json to store the info from gcp.inventory
+    - Automatically read when fab runs
+    - Automatically append to when new demoservers created
+    - Automatically remove when demoserver deleted
+  - Make sure swap space persists after reboot (see TODO in install_base)
+

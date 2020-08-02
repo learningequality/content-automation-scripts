@@ -20,10 +20,21 @@ GCP_BOOT_DISK_SIZE = '30GB'
 
 
 
+
+
+
 # QA DEMOSERVERS INVENTORY
 ################################################################################
 
 inventory = {
+    'test3': {
+        'hosts':['35.185.77.25'],
+        'channels_to_import': [
+            '95a52b386f2c485cb97dd60901674a98',
+        ],
+        'facility_name': 'test3',
+        'hostname': 'test3.learningequality.org',
+    },
     'pradigi-demo': {  # 60GB = used by the Pratham for testing PraDigi channel
         'hosts':['35.196.179.152'],
         'channels_to_import': [], # 'f9da12749d995fa197f8b4c0192e7b2c'],  # PraDigi
@@ -69,16 +80,10 @@ inventory = {
         'facility_name': 'OLD OpenUp Resources (Illustrative Mathematics) demo',
         'hostname': 'openupresources-demo.learningequality.org',
     },
-    'test1': {
-        'hosts':['104.196.162.204'],
-        'channels_to_import': [],
-        'facility_name': 'test1',
-        'hostname': 'test1.learningequality.org',
-    },
 }
 
 
-# PROVIDIONING
+# PROVISIONING
 ################################################################################
 
 @task
@@ -211,3 +216,7 @@ def info():
     puts(green('Running processes:'))
     run('ps -aux')
 
+@task
+def shell():
+    puts(green('TO connect to the server run:'))
+    puts(blue('ssh ' + env.user + '@' + env.host_string))
