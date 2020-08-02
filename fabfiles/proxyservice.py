@@ -22,6 +22,9 @@ def checkproxies():
         assert len(role['hosts'])==1, 'Multiple hosts found for role'
         host = role['hosts'][0]
         print('Checking role_name=', role_name, 'host=', host)
+        hostname = role.get('hostname')
+        if hostname is None:
+            continue  # skip non-demoserver hosts (e.g. vader)
         # check if we proxy port is open on host
         proxy_port_open = False
         port = 3128  # squid3 default proxy port
