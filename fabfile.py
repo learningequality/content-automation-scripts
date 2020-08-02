@@ -39,7 +39,6 @@ env.roledefs = {}  # combined roles from inventory and integrationservers
 from fabfiles.gcp import inventory
 from fabfiles.gcp import create, delete
 from fabfiles.gcp import list_instances, checkdns, checkdiskspace
-from fabfiles.gcp import info, shell
 
 env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
 
@@ -48,8 +47,13 @@ env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
 ################################################################################
 from fabfiles.demoservers import demoserver, restart_kolibri, update_kolibri
 from fabfiles.demoservers import import_channel, import_channels
-from fabfiles.demoservers import stop_kolibri, restart_kolibri
-from fabfiles.demoservers import delete_kolibri
+from fabfiles.demoservers import restart_kolibri, stop_kolibri
+
+
+
+# CATALOG SERVER CHECKS
+################################################################################
+from fabfiles.catalogservers import check_catalog_channels
 
 
 
@@ -70,6 +74,7 @@ def test_task():
     puts(green('print green'))
     print('calling module:', test_utility_function())
     print('DONE')
+
 
 
 

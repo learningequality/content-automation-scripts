@@ -35,14 +35,15 @@ inventory = {
         'facility_name': 'test3',
         'hostname': 'test3.learningequality.org',
     },
+    # EXTERNAL CONTENT QA DEMO SERVERS
     'pradigi-demo': {  # 60GB = used by the Pratham for testing PraDigi channel
         'hosts':['35.196.179.152'],
         'channels_to_import': [], # 'f9da12749d995fa197f8b4c0192e7b2c'],  # PraDigi
         'facility_name': 'PraDigi Demo Server',
         'hostname': 'pradigi-demo.learningequality.org',
     },
-    #
-    # QA DEMO SERVERS
+    # /EXTERNAL CONTENT QA DEMO SERVERS
+    # INTERNAL CONTENT QA DEMO SERVERS
     'pradigi-demo-backup': {    # 30GB = contains 3-4 channels undergoing Q/A
         'hosts':['35.196.115.213'],
         'channels_to_import': [],
@@ -80,6 +81,7 @@ inventory = {
         'facility_name': 'OLD OpenUp Resources (Illustrative Mathematics) demo',
         'hostname': 'openupresources-demo.learningequality.org',
     },
+    # /INTERNAL CONTENT QA DEMO SERVERS
 }
 
 
