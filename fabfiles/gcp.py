@@ -1,8 +1,11 @@
 import dns.resolver
+from itertools import groupby
 import json
+import re
 
-from fabric.api import env, task, local, run
+from fabric.api import env, task, local, sudo, run
 from fabric.colors import red, green, blue, yellow
+from fabric.context_managers import hide
 from fabric.utils import puts
 
 
@@ -206,19 +209,91 @@ def checkdns():
 
 
 
-# HOST UTILS
+# HOST TASKS
 ################################################################################
 
 @task
-def info():
-    puts(green('Python version:'))
-    run('python --version')
-    puts(green('/kolibrihome contains:'))
-    run('ls -ltr /kolibrihome')
-    puts(green('Running processes:'))
-    run('ps -aux')
+def exec(cmd, usesudo=False):
+    """
+    Run the command `cmd` on the remote host. Set usesudo to True to use `sudo`.
+    """
+    usesudo = (usesudo and usesudo.lower() == 'true')  # defaults to False
+    if usesudo:
+        sudo(cmd)
+    else:
+        run(cmd)
+
 
 @task
 def shell():
-    puts(green('TO connect to the server run:'))
+    puts(green('To connect to the server run:'))
     puts(blue('ssh ' + env.user + '@' + env.host_string))
+
+
+@task
+def pypsaux():
+    """
+    Print info about content integrartion scripts on the host.
+    """
+    EXCLUDE_PYPSAUX_PATTERNS = [      # python programs that are not sushi chefs
+        'system-config', 'cinnamon-killer', 'apport-gtk',
+        'buildkite', 'gpt2-slackbot', 'jamalex/.virtualenvs'
+    ]
+    processes  = _psaux()
+    pyprocesses = []
+    for process in processes:
+        if 'python' in process['COMMAND']:
+            if not any([pat in process['COMMAND'] for pat in EXCLUDE_PYPSAUX_PATTERNS]):
+                pyprocesses.append(process)
+
+    # detokenify
+    TOKEN_PAT = re.compile(r'--token=(?P<car>[\da-f]{6})(?P<cdr>[\da-f]{34})')
+    def _rmtoken_sub(match):
+        return '--token=' +match.groupdict()['car'] + '...'
+    for pyp in pyprocesses:
+        pyp['COMMAND'] = TOKEN_PAT.sub(_rmtoken_sub, pyp['COMMAND'])
+
+    # sort and enrich with current working dir (cwd)
+    pyprocesses = sorted(pyprocesses, key=lambda pyp: pyp['COMMAND'])
+    for cmd_str, process_group in groupby(pyprocesses, lambda vl: vl['COMMAND']):
+        process_group = list(process_group)
+        with hide('running', 'stdout'):
+            cwd_str = sudo('pwdx {}'.format(process_group[0]['PID'])).split(':')[1].strip()
+        for pyp in process_group:
+            pyp['cwd'] = cwd_str
+
+    # print tab-separated output
+    for pyp in pyprocesses:
+        output_vals = [
+            pyp['PID'],
+            pyp['START'],
+            pyp['TIME'],
+            pyp['COMMAND'],
+            '(cwd='+pyp['cwd']+')',
+        ]
+        print('\t'.join(output_vals))
+
+
+
+# HELPER METHODS
+################################################################################
+
+def _psaux():
+    with hide('running', 'stdout'):
+        result = sudo('ps aux')
+    processes = _parse_psaux(result)
+    return processes
+
+def _parse_psaux(psaux_str):
+    """
+    Parse the output of `ps aux` into a list of dictionaries representing the parsed
+    process information from each row of the output. Keys are mapped to column names,
+    parsed from the first line of the process' output.
+    :rtype: list[dict]
+    :returns: List of dictionaries, each representing a parsed row from the command output
+    """
+    lines = psaux_str.split('\n')
+    # lines = subprocess.Popen(['ps', 'aux'], stdout=subprocess.PIPE).stdout.readlines()
+    headers = [h for h in ' '.join(lines[0].strip().split()).split() if h]
+    raw_data = map(lambda s: s.strip().split(None, len(headers) - 1), lines[1:])
+    return [dict(zip(headers, r)) for r in raw_data]

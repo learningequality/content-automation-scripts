@@ -1,30 +1,14 @@
-import datetime
-# from dateutil.parser import parse
-# from github import Github
-from io import BytesIO
-from itertools import groupby
-import json
 import os
-import pipes
-import re
-import sys
-import time
 
-from fabric.api import env, task, local, sudo, run, prompt, settings
-from fabric.api import get, put, require
-from fabric.colors import red, green, blue, yellow
-from fabric.context_managers import cd, prefix, show, hide, shell_env, quiet, lcd
-from fabric.contrib.files import exists, sed, upload_template
-from fabric.utils import puts
+from fabric.api import env
 
-from fabfiles.github import test_utility_function
 
 
 # FAB SETTTINGS
 ################################################################################
 env.user = os.environ.get('USER')  # assume ur local username == remote username
 env.roledefs = {}  # combined roles from inventory and integrationservers
-
+env.password = os.environ.get('SUDO_PASSWORD')
 
 
 # PREREQUISITES
@@ -39,8 +23,13 @@ env.roledefs = {}  # combined roles from inventory and integrationservers
 from fabfiles.gcp import inventory
 from fabfiles.gcp import create, delete
 from fabfiles.gcp import list_instances, checkdns, checkdiskspace
+from fabfiles.gcp import exec, shell, pypsaux
 
 env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
+
+
+
+
 
 
 # DEMOSERVERS
@@ -50,10 +39,21 @@ from fabfiles.demoservers import import_channel, import_channels
 from fabfiles.demoservers import restart_kolibri, stop_kolibri
 
 
+# CHEFOPS
+################################################################################
+from fabfiles.chefops import integrationservers
+
+env.roledefs.update(integrationservers)  # content integration servers (vader)
+
 
 # CATALOG SERVER CHECKS
 ################################################################################
 from fabfiles.catalogservers import check_catalog_channels
+
+
+
+# GITHUB
+################################################################################
 
 
 
@@ -64,16 +64,6 @@ from fabfiles.proxyservice import install_squid_proxy, update_squid_proxy
 from fabfiles.proxyservice import uninstall_squid_proxy
 
 
-
-
-
-@task
-def test_task():
-    puts(blue('print blue...'))
-    puts(red('print red'))
-    puts(green('print green'))
-    print('calling module:', test_utility_function())
-    print('DONE')
 
 
 

@@ -16,7 +16,6 @@ Content pipeline automation scripts -- everything is *fab*ulous when you've got 
 3. Utilities for setting up and running chefs on a remote integration server (`vader`)
 
 
-
 Install
 -------
 
@@ -27,12 +26,10 @@ Install
 
 TODOs
 -----
-  - Figure out if KOLIBRI_LANGUAGE is necessary for cmd line or a Facility setting.
   - Start using an inventory.json to store the info from gcp.inventory
     - Automatically read when fab runs
     - Automatically append to when new demoservers created
     - Automatically remove when demoserver deleted
-  - Make sure swap space persists after reboot (see TODO in install_base)
 
 
 
@@ -110,3 +107,23 @@ Delete instance
 
     fab delete:mitblossoms-demo
 
+
+
+
+
+Remote host utils
+-----------------
+You can run any command on the remote host `vader` as follows:
+
+    fab -R vader exec:'ls -l /data'
+
+certain commands require running as root:
+
+    fab -R vader exec:'ls -l /data',usesudo=true
+
+which requires hat the env var `SUDO_PASSWORD` is set.
+
+Good luck figuring out the appropriate quote escape sequence that will satisfy
+your local shell, Fabric command escaping, and the remote shell. For anything
+non-trivial, just connect to the host via ssh. This command will tell you how
+to connect to a given host via ssh `fab -R vader shell`.
