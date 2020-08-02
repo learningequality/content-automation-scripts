@@ -55,6 +55,7 @@ from fabfiles.catalogservers import check_catalog_channels
 # GITHUB
 ################################################################################
 
+from fabfiles.github import create_github_repo, list_chef_repos, list_repo_issues
 
 
 # PROXY SERVICE
