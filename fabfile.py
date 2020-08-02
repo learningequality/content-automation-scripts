@@ -27,6 +27,12 @@ env.roledefs = {}  # combined roles from inventory and integrationservers
 
 
 
+# PREREQUISITES
+################################################################################
+# 1. SusOps engineer be part of the GCP project kolibri-demo-servers
+# 2. The username $USER must be one of the default accounts created on instances
+# see https://console.cloud.google.com/compute/metadata?project=kolibri-demo-servers
+
 
 # PROVISIONING
 ################################################################################
@@ -38,14 +44,20 @@ from fabfiles.gcp import info, shell
 env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
 
 
+# DEMOSERVERS
+################################################################################
+from fabfiles.demoservers import demoserver, restart_kolibri, update_kolibri
+from fabfiles.demoservers import import_channel, import_channels
+from fabfiles.demoservers import stop_kolibri, restart_kolibri
+from fabfiles.demoservers import delete_kolibri
+
+
 
 # PROXY SERVICE
 ################################################################################
 from fabfiles.proxyservice import checkproxies, update_proxy_servers
 from fabfiles.proxyservice import install_squid_proxy, update_squid_proxy
 from fabfiles.proxyservice import uninstall_squid_proxy
-
-
 
 
 
