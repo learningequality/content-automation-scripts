@@ -99,15 +99,14 @@ def install_base():
         sudo('apt-get install -y nginx')
         sudo('apt-get install -y supervisor')
 
-    # 2. Add swap
+    # 2. Add swap space
     if not exists('/var/swap.1'):
         puts('Adding 1G of swap file /var/swap.1')
         sudo('/bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024')
         sudo('/sbin/mkswap /var/swap.1')
         sudo('chmod 600 /var/swap.1')
         sudo('/sbin/swapon /var/swap.1')
-        # TODO: append the following line to /etc/fstab :
-        # /var/swap.1   swap    swap    defaults        0   0
+        sudo('echo "/var/swap.1  none  swap  sw  0  0" >> /etc/fstab')
 
     # 3. Add the user `kolibri` who will be running Kolibri app
     if not exists('/home/kolibri'):
