@@ -45,7 +45,7 @@ env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
 
 # DEMOSERVERS
 ################################################################################
-from fabfiles.demoservers import demoserver, restart_kolibri, update_kolibri
+from fabfiles.demoservers import demoserver, update_kolibri
 from fabfiles.demoservers import import_channel, import_channels
 from fabfiles.demoservers import restart_kolibri, stop_kolibri
 
