@@ -1,4 +1,5 @@
-# Content Automation Scripts
+Content Automation Scripts
+==========================
 
 Content pipeline automation scripts -- everything is *fab*ulous when you've got Python on your side.
 
@@ -11,9 +12,11 @@ Content pipeline automation scripts -- everything is *fab*ulous when you've got 
   - Out of scope:
     - Public demo servers (see https://github.com/learningequality/infrastructure)
 
-2. Automatic github repo management and checks
+2. Utilities for setting up and running chefs on a remote integration server (`vader`)
 
-3. Utilities for setting up and running chefs on a remote integration server (`vader`)
+3. Automatic github repo management and checks
+
+
 
 
 Install
@@ -24,14 +27,27 @@ Install
     pip install -r requirements.txt
 
 
-TODOs
------
-  - Start using an inventory.json to store the info from gcp.inventory
-    - Automatically read when fab runs
-    - Automatically append to when new demoservers created
-    - Automatically remove when demoserver deleted
+
+Required credentials
+--------------------
+ 1. To create temporary demo servers for content QA, you must:
+  - be part of the GCP project `kolibri-demo-servers` (ask Aron)
+  - your ssh public key must be added [here](https://console.cloud.google.com/compute/metadata?project=kolibri-demo-servers)
+    and it must correspond to the same username as you use on your local machine.
+ 2. To run chefs on `vader`, you must:
+    - have a sudo-enabled account on `vader`
+    - have set the env variable `SUDO_PASSWORD` to your vader password
+    - have set the env variable `STUDIO_TOKEN` to a Studio API token with `edit` rights for the channel
+ 3. To run the github automation scripts
+   - You must have a GitHub API token placed in `credentials/github_api.json`,
+     see `credentials/github_api.template.json` for example structure.
 
 
+
+
+
+1. Cloud Kolibri demo servers
+=============================
 
 
 GCP Authentication and Authorization
@@ -109,10 +125,24 @@ Delete instance
 
 
 
+TODOs
+-----
+  - Start using an inventory.json to store the info from gcp.inventory
+    - Automatically read when fab runs
+    - Automatically append to when new demoservers created
+    - Automatically remove when demoserver deleted
+
 
 
 Remote host utils
 -----------------
+### Information
+To show all sushi chefs (python processes) running on `vader`, use:
+
+    fab -R vader pypsaux 
+
+
+### Commands
 You can run any command on the remote host `vader` as follows:
 
     fab -R vader exec:'ls -l /data'
@@ -121,9 +151,75 @@ certain commands require running as root:
 
     fab -R vader exec:'ls -l /data',usesudo=true
 
-which requires hat the env var `SUDO_PASSWORD` is set.
+which requires that the env var `SUDO_PASSWORD` is set.
 
 Good luck figuring out the appropriate quote escape sequence that will satisfy
-your local shell, Fabric command escaping, and the remote shell. For anything
-non-trivial, just connect to the host via ssh. This command will tell you how
-to connect to a given host via ssh `fab -R vader shell`.
+your local shell, Fabric command escaping, and the remote shell ;) For anything
+non-trivial, just connect to the host via ssh. This command will tell you the
+appropriate host string to connect to a given host `fab -R vader  shell`.
+
+
+
+
+2. Remote chef execution
+========================
+
+General chef repo conventions: 
+  - Git repo names follow the convention `sushi-chef-{nickname}`,
+    where `{nickname}` is a hyphen-separated unique name.
+  - The content integration script is called `sushichef.py`.
+  - Every content integration script repo contains a `requirements.txt`.
+
+
+
+Basic usage
+-----------
+
+### 1. Setup chef script
+
+    fab -R vader  setup_chef:<nickname>
+
+This command will clone `https://github.com/learningequality/sushi-chef-{nickname}`,
+to `/data/sushi-chef-{nickname}`, create a virtual environment called `venv`,
+and install the python packages in the `requirements.txt` for the project.
+
+Run `update_chef` task to update chef code to latest version (`fetch` and `checkout --hard`).
+
+To remove chef code completely from the integration server, use `unsetup_chef`.
+
+
+### 2. Run it
+
+    export STUDIO_TOKEN=<YOURSTUDIOTOKENGOESGHERE>
+    fab -R vader  run_chef:<nickname>
+
+This will result in the call `./sushichef.py --thumbnails --token=$STUDIO_TOKEN`
+on the host `vader`, inside the directory `/data/sushi-chef-{nickname}` after the
+virtualenv `/data/sushi-chef-{nickname}/venv` has been activated.
+
+
+You can also run chef in background using
+
+    fab -R vader run_chef:<nickname>,nohup=true
+
+which starts the chef command wrapped in `nohup` so that it persists after the ssh
+connection is closed. Output logs will be in `/data/sushi-chef-{nickname}/nohup.out`.
+
+
+
+
+3. Github repo management
+=========================
+
+
+Creating a github repo for a new chef
+-------------------------------------
+The code for each chef script lives in its own github repo in the `learnignequality` org.
+Run the following command to create an empty github repo for a new chef:
+
+    fab create_github_repo:nickname,source_url="https://nickname.org"
+
+This will create the repository https://github.com/learningequality/sushi-chef-nickname
+and enable read/write access to this repo for the "Sushi Chefs" team.
+The `source_url` argument is optional, but it's nice to have.
+This command requires a github API key to be present in the `credentials/` dir.

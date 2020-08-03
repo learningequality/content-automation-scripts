@@ -11,7 +11,7 @@ from fabric.utils import puts
 ################################################################################
 
 @task
-def checkproxies():
+def check_proxies():
     """
     Check which demoservers have port 3128 open and is running a proxy service.
     """
@@ -50,7 +50,7 @@ def update_proxy_servers():
      1. First update ACL info in config/etc_squid_squid.conf
      2. Run `fab update_proxy_servers`
     """
-    proxy_hosts = checkproxies()
+    proxy_hosts = check_proxies()
     puts(green('Updating the proxy service config file on all proxy hosts:'))
     puts(green('proxy_hosts = ' + str(proxy_hosts)))
     for host in proxy_hosts:

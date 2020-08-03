@@ -30,14 +30,6 @@ GCP_BOOT_DISK_SIZE = '30GB'
 ################################################################################
 
 inventory = {
-    'test3': {
-        'hosts':['35.185.77.25'],
-        'channels_to_import': [
-            '95a52b386f2c485cb97dd60901674a98',
-        ],
-        'facility_name': 'test3',
-        'hostname': 'test3.learningequality.org',
-    },
     # EXTERNAL CONTENT QA DEMO SERVERS
     'pradigi-demo': {  # 60GB = used by the Pratham for testing PraDigi channel
         'hosts':['35.196.179.152'],
@@ -171,7 +163,7 @@ def list_instances(tsv=None):
 
 
 @task
-def checkdiskspace():
+def check_diskspace():
     """
     Check available disk space on all demo servers.
     """
@@ -185,7 +177,7 @@ def checkdiskspace():
 
 
 @task
-def checkdns():
+def check_dns():
     """
     Checks if DNS lookup matches hosts IP.
     """
@@ -217,7 +209,7 @@ def exec(cmd, usesudo=False):
     """
     Run the command `cmd` on the remote host. Set usesudo to True to use `sudo`.
     """
-    usesudo = (usesudo and usesudo.lower() == 'true')  # defaults to False
+    usesudo = (usesudo and usesudo.lower() == 'true')
     if usesudo:
         sudo(cmd)
     else:

@@ -13,9 +13,9 @@ Install
 
 Purpose
 -------
-  - Command line interface to call provisioning scripts
+  - Command line interface to call server provisioning scripts
   - Connect to remote machines securely
-  - Execute system administration tasks (provisioning, setup, deploy)
+  - Execute system administration tasks (app provisioning, setup, deploy)
   - Execute system checks, e.g., `fab checkdns`
 
 
@@ -80,9 +80,10 @@ code of the `fabfile.py` script—it's very easy to read and self-explantory.
 Tasks and env
 -------------
 The main thing you need to know about Fabric is that `tasks` can access a global
-dictionary of settings and parameters called `env`. A lot of interesting data is
-passed to scripts and functions in this manner:
-   - `env.roledefs`: is a global dictionary that defines the parameters for the demo servers
+dictionary of settings and parameters called `env`.
+A lot of interesting data is passed to scripts and functions in this manner:
+  - `env.roledefs` is set from `fabfiles.gcp.inventory` which contains a dictionary
+     of info about the demo servers hosts, including:
       - `hosts`: list of hosts in this role (usually one)
       - `channels_to_import`: channel ids for channels to import when setting up server
       - `facility_name`: what should the Kolibri facility be called
@@ -99,5 +100,4 @@ If you ever get the error:
     <paramiko.rsakey.RSAKey object at 0x105452650>)
 
 Erase all `192.168.59.13` entries in your `~/.ssh/known_hosts`.
-
 

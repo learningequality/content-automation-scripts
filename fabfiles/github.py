@@ -14,11 +14,6 @@ GITHUB_API_TOKEN_NAME = 'cloud-chef-token'
 GITHUB_SUSHI_CHEFS_TEAM_ID = 2590528  # "Sushi Chefs" team = all sushi chef devs
 
 
-# TODO: support git:// URLs
-# TODO: support .git suffix in HTTTPs urls
-# TODO: handle all special cases https://github.com/tj/node-github-url-from-git
-GITHUB_REPO_NAME_PAT = re.compile(r'https://github.com/(?P<repo_account>\w*?)/(?P<repo_name>[A-Za-z0-9_-]*)')
-
 
 def get_github_client(token=None):
     """
@@ -104,16 +99,3 @@ def list_repo_issues(reponame, organization='learningequality'):
     return open_issues
 
 
-
-
-def github_repo_to_chefdir(github_url):
-    """
-    Extracts the `chefdir` (repo name) from a github URL.
-    """
-    if github_url.endswith('/'):
-        github_url = github_url[0:-1]
-    match = GITHUB_REPO_NAME_PAT.search(github_url)
-    if match:
-        return match.groupdict()['repo_name']
-    else:
-        raise ValueError('chefdir cannot be inferred from github repo name...')

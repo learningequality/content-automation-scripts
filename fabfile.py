@@ -22,14 +22,10 @@ env.password = os.environ.get('SUDO_PASSWORD')
 ################################################################################
 from fabfiles.gcp import inventory
 from fabfiles.gcp import create, delete
-from fabfiles.gcp import list_instances, checkdns, checkdiskspace
+from fabfiles.gcp import list_instances, check_dns, check_diskspace
 from fabfiles.gcp import exec, shell, pypsaux
 
 env.roledefs.update(inventory)  # QA demoservers inventory (GCP VMs)
-
-
-
-
 
 
 # DEMOSERVERS
@@ -39,9 +35,17 @@ from fabfiles.demoservers import import_channel, import_channels
 from fabfiles.demoservers import restart_kolibri, stop_kolibri
 
 
+# PROXY SERVICE
+################################################################################
+from fabfiles.proxyservice import check_proxies, update_proxy_servers
+from fabfiles.proxyservice import install_squid_proxy, update_squid_proxy
+from fabfiles.proxyservice import uninstall_squid_proxy
+
+
 # CHEFOPS
 ################################################################################
 from fabfiles.chefops import integrationservers
+from fabfiles.chefops import run_chef, setup_chef, unsetup_chef, update_chef
 
 env.roledefs.update(integrationservers)  # content integration servers (vader)
 
@@ -51,18 +55,10 @@ env.roledefs.update(integrationservers)  # content integration servers (vader)
 from fabfiles.catalogservers import check_catalog_channels
 
 
-
 # GITHUB
 ################################################################################
-
 from fabfiles.github import create_github_repo, list_chef_repos, list_repo_issues
 
-
-# PROXY SERVICE
-################################################################################
-from fabfiles.proxyservice import checkproxies, update_proxy_servers
-from fabfiles.proxyservice import install_squid_proxy, update_squid_proxy
-from fabfiles.proxyservice import uninstall_squid_proxy
 
 
 

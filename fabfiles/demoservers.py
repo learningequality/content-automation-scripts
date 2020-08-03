@@ -72,7 +72,7 @@ def update_kolibri(kolibri_lang=KOLIBRI_LANG_DEFAULT):
     # no nginx, because already confured
     configure_kolibri(kolibri_lang=kolibri_lang)
     restart_kolibri(post_restart_sleep=30)  # wait for DB migration to happen...
-    # no need to provision_kolibri; se assume facily has already been created
+    # no need to provisiondevice; we assume facily has already been created
     import_channels()
     restart_kolibri()
     puts(green('Kolibri server update complete.'))

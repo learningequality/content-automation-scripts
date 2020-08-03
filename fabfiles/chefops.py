@@ -9,16 +9,18 @@ from fabric.utils import puts
 
 
 # Studio
-STUDIO_TOKEN = os.environ.get('STUDIO_TOKEN')
+STUDIO_TOKEN = os.environ.get('STUDIO_TOKEN', None)
 
 
 # GLOBAL CHEF SETTINGS
 ################################################################################
 CHEF_USER = 'chef'
-DEFAULT_GIT_BRANCH = 'master'
-CHEFS_DATA_DIR = '/data'
+DATA_DIR = '/data'
+VIRTUALENV_PYTHON = 'python3.5'
 
 
+# INTEGRATIONS SERVERS (UNIX hosts with good internet and lots of storage space)
+################################################################################
 integrationservers = {
     'vader': {
         'hosts':['eslgenie.com:1'],           # because vader runs ssh on port 1
@@ -27,51 +29,87 @@ integrationservers = {
 
 
 
+# RUN CHEF
+################################################################################
 
+@task
+def run_chef(nickname, repo_name=None, nohup=False, prfx=None, args='', cwd=None):
+    """
+    Run the command: `cd cwd; prfx && ./sushichef.py --thumbnails --token={}`
+    where {} will be replaced by the value of the env variable STUDIO_TOKEN.
+    All keyword arguments are optional and used only for special cases.
+    """
+    nohup = (nohup and nohup.lower() == 'true')  # defaults to False
+    if STUDIO_TOKEN is None:
+        raise ValueError('Must define STUDIO_TOKEN env var to run chefs.')
+
+    if repo_name is None:
+        repo_name = 'sushi-chef-' + nickname
+    chef_repo_dir = os.path.join(DATA_DIR, repo_name)
+    chef_root_dir = os.path.join(chef_repo_dir, cwd) if cwd else chef_repo_dir
+
+    # TODO rm chef_root_dir/.webcache if needed...
+    cmd = './sushichef.py --token={} --thumbnails '.format(STUDIO_TOKEN)
+    if args:
+        cmd += args
+
+    with cd(chef_root_dir):
+        full_prfx = prfx + ' && ' if prfx else ''
+        full_prfx += 'source ' + os.path.join(chef_root_dir, 'venv/bin/activate')
+        with prefix(full_prfx):
+            if nohup == False:
+                # Normal operation (blocking)
+                sudo(cmd, user=CHEF_USER)
+            else:
+                # Run in background
+                cmd_nohup = wrap_in_nohup(cmd)
+                sudo(cmd_nohup, user=CHEF_USER)
+                nohup_out_file = os.path.join(chef_root_dir, 'nohup.out')
+                puts(green('Script stdout is sent to   ' + nohup_out_file))
 
 
 # CHEF SETUP
 ################################################################################
 
 @task
-def setup_chef(nickname, organization='learningequality', repo_name=None, branch_name=DEFAULT_GIT_BRANCH):
+def setup_chef(nickname, repo_name=None, cwd=None, organization='learningequality', branch_name='master'):
     """
-    Git-clone, setup virtualenv, and pip-install the Python packages for the chef
-    `nickname` chef. Code is assumed to be in `https://github.com/learningequality/sushi-chef-{nickname}`.
+    Git-clone, setup virtualenv, and pip-install the the chef `nickname`.
+    The source code for the chef is assumed to be taken from the github repo
+    `https://github.com/learningequality/sushi-chef-{nickname}`.
     """
     if repo_name is None:
         repo_name = 'sushi-chef-' + nickname
-    chef_root_dir = os.path.join(CHEFS_DATA_DIR, repo_name)
+    chef_repo_dir = os.path.join(DATA_DIR, repo_name)
+    chef_root_dir = os.path.join(chef_repo_dir, cwd) if cwd else chef_repo_dir
 
-    # github_git_url = 'git@github.com:{}/{}.git'.format(organization, repo_name)
     github_http_url = 'https://github.com/{}/{}'.format(organization, repo_name)
 
-    with cd(CHEFS_DATA_DIR):
-        if exists(chef_root_dir):
-            puts(yellow('Chef repo dir ' + chef_root_dir + ' already exists.'))
+    with cd(DATA_DIR):
+        if exists(chef_repo_dir):
+            puts(yellow('Chef repo dir ' + chef_repo_dir + ' already exists.'))
             puts(yellow('You can use `update_chef` task to update existing code.'))
             return
 
         # clone and chown that repo
         sudo('git clone  --quiet  ' + github_http_url)
-        sudo('chown -R {}:{}  {}'.format(CHEF_USER, CHEF_USER, chef_root_dir))
+        sudo('chown -R {}:{}  {}'.format(CHEF_USER, CHEF_USER, chef_repo_dir))
 
         # checkout the desired branch
-        with cd(chef_root_dir):
+        with cd(chef_repo_dir):
             sudo('git checkout ' + branch_name, user=CHEF_USER)
+        puts(green('Setup code from ' + github_http_url + ' in ' + chef_repo_dir))
 
         # setup python virtualenv
         with cd(chef_root_dir):
-            sudo('virtualenv -p python3.5  venv', user=CHEF_USER)
+            sudo('virtualenv -p ' + VIRTUALENV_PYTHON + ' venv', user=CHEF_USER)
 
-        with cd(chef_root_dir):
-            activate_sh = os.path.join(chef_root_dir, 'venv/bin/activate')
-            reqs_filepath = os.path.join(chef_root_dir, 'requirements.txt')
-            # Nov 23: workaround____ necessary to avoid HOME env var being set wrong
-            with prefix('export HOME=/data && source ' + activate_sh):
-                # install requirements
-                sudo('pip install --no-input --quiet -r ' + reqs_filepath, user=CHEF_USER)
-        puts(green('Setup chef code from ' + github_http_url + ' in ' + chef_root_dir))
+        # install requirements
+        activate_sh = os.path.join(chef_root_dir, 'venv/bin/activate')
+        reqs_filepath = os.path.join(chef_root_dir, 'requirements.txt')
+        with prefix('export HOME=/data && source ' + activate_sh):
+            sudo('pip install --no-input --quiet -r ' + reqs_filepath, user=CHEF_USER)
+        puts(green('Python env setup in ' + os.path.join(chef_root_dir, 'venv')))
 
 
 @task
@@ -81,23 +119,29 @@ def unsetup_chef(nickname, repo_name=None):
     """
     if repo_name is None:
         repo_name = 'sushi-chef-' + nickname
-    chef_root_dir = os.path.join(CHEFS_DATA_DIR, repo_name)
-    sudo('rm -rf  ' + chef_root_dir)
-    puts(green('Removed chef directory ' + chef_root_dir))
+    chef_repo_dir = os.path.join(DATA_DIR, repo_name)
+    sudo('rm -rf  ' + chef_repo_dir)
+    puts(green('Removed chef directory ' + chef_repo_dir))
 
 
 @task
-def update_chef(nickname, repo_name=None, branch_name=DEFAULT_GIT_BRANCH):
+def update_chef(nickname, repo_name=None, cwd=None, branch_name='master'):
     """
     Run pull -f in the chef repo to update the chef code to the lastest version.
     """
     if repo_name is None:
         repo_name = 'sushi-chef-' + nickname
-    chef_root_dir = os.path.join(CHEFS_DATA_DIR, repo_name)    
-    with cd(chef_root_dir):
+    chef_repo_dir = os.path.join(DATA_DIR, repo_name)
+    chef_root_dir = os.path.join(chef_repo_dir, cwd) if cwd else chef_repo_dir
+    with cd(chef_repo_dir):
         sudo('git fetch origin  ' + branch_name, user=CHEF_USER)
         sudo('git checkout ' + branch_name, user=CHEF_USER)
         sudo('git reset --hard origin/' + branch_name, user=CHEF_USER)
+
+    # setup python virtualenv
+    if not exists(os.path.join(chef_root_dir, 'venv')):
+        with cd(chef_root_dir):
+            sudo('virtualenv -p ' + VIRTUALENV_PYTHON + ' venv', user=CHEF_USER)
 
     # update requirements
     activate_sh = os.path.join(chef_root_dir, 'venv/bin/activate')
@@ -108,21 +152,16 @@ def update_chef(nickname, repo_name=None, branch_name=DEFAULT_GIT_BRANCH):
 
 
 
-
-
 # HELPER METHODS
 ################################################################################
 
-def wrap_in_nohup(cmd, redirects=None, pid_file=None):
+def wrap_in_nohup(cmd):
     """
     This wraps the chef command `cmd` appropriately for it to run in background
-    using the nohup to avoid being terminated when the HANGUP signal is received
+    using `nohup` to avoid being terminated when the HANGUP signal is received
     when shell exists. This function is necessary to support some edge cases:
-      - composite commands, e.g. ``source ./c/keys.env && ./chef.py``
-      - adds an extra sleep 1 call so commands doesn't exit too fast and confuse fabric
-    Args:
-      redirects (str):  options for redirecting command's stdout and stderr
-      pid_file (str): path to pid file where to save pid of backgrdoun process (needed for stop command)
+      - supports composite commands, e.g. `source ./c/keys.env && ./chef.py`
+      - add extra sleep 1 call so commands doesn't exit fast and confuse fabric
     """
     # prefixes
     cmd_prefix = ' ('            # wrapping needed for sleep suffix
@@ -130,35 +169,16 @@ def wrap_in_nohup(cmd, redirects=None, pid_file=None):
     cmd_prefix += ' bash -c " '  # spawn subshell in case cmd has multiple parts
     # suffixes
     cmd_suffix = ' " '           # /subshell
-    if redirects is not None:    # optional stdout/stderr redirects (e.g. send output to a log file)
-        cmd_suffix += redirects
     cmd_suffix += ' & '          # put nohup command in background
-    if pid_file is not None:     # optionally save nohup pid in  `pid_file`
-         cmd_suffix += ' echo $! >{pid_file} '.format(pid_file=pid_file)
     cmd_suffix += ') && sleep 1' # via https://stackoverflow.com/a/43152236
     # wrap it yo!
     return cmd_prefix + cmd + cmd_suffix
 
 
-def add_args(cmd, args_dict):
-    """
-    Insert the command line arguments from `args_dict` into a chef run command.
-    Assumes `cmd` contains the substring `--token` and inserts args right before
-    instead of appending to handle the case where cmd contains extra options. 
-    """
-    args_str = ''
-    for argk, argv in args_dict.items():
-        if argv is not None:
-            args_str += ' ' + argk + '=' + argv + ' '
-        else:
-            args_str += ' ' + argk + ' '
-    return cmd.replace('--token', args_str + ' --token')
-
-
 # TODO: support git:// URLs
 # TODO: support .git suffix in HTTTPs urls
 # TODO: handle all special cases https://github.com/tj/node-github-url-from-git
-GITHUB_REPO_NAME_PAT = re.compile(r'https://github.com/(?P<repo_account>\w*?)/(?P<repo_name>[A-Za-z0-9_-]*)')
+GITHUB_REPO_NAME_PAT = re.compile(r'https://github.com/(?P<organization>\w*?)/(?P<repo_name>[A-Za-z0-9_-]*)')
 
 def github_repo_to_chefdir(github_url):
     """
