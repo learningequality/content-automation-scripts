@@ -4,18 +4,15 @@ Content Automation Scripts
 Content pipeline automation scripts -- everything is *fab*ulous when you've got Python on your side.
 
 1. Semi-automated steps provided for the following tasks:
-  - Setup a kolibri demo server from any pex and any content channel.
-  - Use cases:
-    - Kolibri preview for content developers
-    - Channel Q/A process
-    - Support partnerships by providing place to preview content channels
-  - Out of scope:
-    - Public demo servers (see https://github.com/learningequality/infrastructure)
+   - Setup a kolibri demo server from any pex and any content channel.
+   - Use cases:
+     - Kolibri preview for content developers
+     - Channel Q/A process
+     - Support partnerships by providing place to preview content channels
 
 2. Utilities for setting up and running chefs on a remote integration server (`vader`)
 
 3. Automatic github repo management and checks
-
 
 
 
@@ -31,23 +28,20 @@ Install
 Required credentials
 --------------------
  1. To create temporary demo servers for content QA, you must:
-  - be part of the GCP project `kolibri-demo-servers` (ask Aron)
-  - your ssh public key must be added [here](https://console.cloud.google.com/compute/metadata?project=kolibri-demo-servers)
-    and it must correspond to the same username as you use on your local machine.
+   - be part of the GCP project `kolibri-demo-servers` (ask Aron)
+   - your ssh public key must be added [here](https://console.cloud.google.com/compute/metadata?project=kolibri-demo-servers)
+     and it must correspond to the same username as you use on your local machine.
  2. To run chefs on `vader`, you must:
     - have a sudo-enabled account on `vader`
     - have set the env variable `SUDO_PASSWORD` to your vader password
     - have set the env variable `STUDIO_TOKEN` to a Studio API token with `edit` rights for the channel
  3. To run the github automation scripts
-   - You must have a GitHub API token placed in `credentials/github_api.json`,
-     see `credentials/github_api.template.json` for example structure.
+    - You must have a GitHub API token placed in `credentials/github_api.json`,
+      see `credentials/github_api.template.json` for example structure.
 
 
 
-
-
-1. Cloud Kolibri demo servers
-=============================
+# Cloud Kolibri demo servers
 
 
 GCP Authentication and Authorization
@@ -130,7 +124,7 @@ TODOs
   - Start using an inventory.json to store the info from gcp.inventory
     - Automatically read when fab runs
     - Automatically append to when new demoservers created
-    - Automatically remove when demoserver deleted
+    - Automatically remove when demoserver is deleted
 
 
 
@@ -161,8 +155,7 @@ appropriate host string to connect to a given host `fab -R vader  shell`.
 
 
 
-2. Remote chef execution
-========================
+# 2. Remote chef execution
 
 General chef repo conventions: 
   - Git repo names follow the convention `sushi-chef-{nickname}`,
@@ -208,8 +201,8 @@ connection is closed. Output logs will be in `/data/sushi-chef-{nickname}/nohup.
 
 
 
-3. Github repo management
-=========================
+
+# 3. Github repo management
 
 
 Creating a github repo for a new chef
