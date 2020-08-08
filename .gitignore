@@ -1,6 +1,9 @@
 # credentials
 credentials
 
+# local checkouts of all sushi chef repos
+chefrepos
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

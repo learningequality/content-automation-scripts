@@ -60,10 +60,8 @@ from fabfiles.catalogservers import check_catalog_channels
 from fabfiles.github import create_github_repo, list_chef_repos, list_pipeline_repos
 
 
-
-
-
-
-
-
+# CODE REPORTS
+################################################################################
+from fabfiles.codereports import local_setup_chef, local_update_chef, local_unsetup_chef
+from fabfiles.codereports import analyze_chef_repo, analyze_chef_repos
 
