@@ -1,17 +1,17 @@
+import functools
 import json
 import os
-import re
 import requirements
 import tempfile
 import xmlrpc.client
 
-from fabric.api import env, task, local, prompt
+from fabric.api import env, task, local
 from fabric.colors import red, green, blue, yellow
-from fabric.context_managers import cd, prefix, lcd
-from fabric.contrib.files import exists
+from fabric.context_managers import hide, lcd
 from fabric.utils import puts
 
-from .github import get_chef_repos, get_pipeline_repos
+from .github import get_chef_repos
+
 
 class FabricException(Exception):    # Generic Exception for using Fabric Errors
     pass
@@ -25,18 +25,22 @@ CHEF_REPOS_DIR = 'chefrepos'
 if not os.path.exists(CHEF_REPOS_DIR):
     os.mkdir(CHEF_REPOS_DIR)
 
-MAX_REPO_NAME_LEN = 46  # len('sushi-chef-internet-archive-universal-library')+1
-
-CODE_KINDS = [
-    'Python',
-    'JavaScript',
-    'Markdown',
-    'JSON',
-    'HTML',
-    'CSS',
-]
-
-COUNT_KEYS = ['nFiles', 'blank', 'comment', 'code']
+# A dict of header --> attrpath associations to use when printing the report
+REPORT_FIELDS_TO_PRINT = {
+    'repo_name': 'repo_name',
+    'branch': 'branch',
+    'requirements.txt': 'requirements_check.verdict',
+    'sushichef.py': 'sushichef_check.verdict',
+    'pyfiles': 'cloc_data.Python.nFiles',
+    'pyLOC': 'cloc_data.Python.code',
+    'md': 'cloc_data.Markdown.code',
+    'Bash': 'cloc_data.Bourne Shell.code',
+    'js': 'cloc_data.JavaScript.code',
+    'JSON': 'cloc_data.JSON.code',
+    'HTML': 'cloc_data.HTML.code',
+    'CSS': 'cloc_data.CSS.code',
+    # 'Comments': manually added containing combined comments from all reports
+}
 
 
 
@@ -44,7 +48,10 @@ COUNT_KEYS = ['nFiles', 'blank', 'comment', 'code']
 ################################################################################
 
 @task
-def analyze_chef_repo(nickname, repo_name=None, organization='learningequality', branch='master', printheader=True):
+def analyze_chef_repo(nickname, repo_name=None, organization='learningequality', branch='master', printing=True):
+    """
+    Ruch chef repo convention checks and count LOC for a given chef repo.
+    """
     if repo_name is None:
         repo_name = 'sushi-chef-' + nickname
     chef_repo_dir = os.path.join(CHEF_REPOS_DIR, repo_name)
@@ -53,70 +60,47 @@ def analyze_chef_repo(nickname, repo_name=None, organization='learningequality',
     else:
         local_update_chef(None, repo_name=repo_name, branch=branch)
 
-    # requirements.txt
-    reqs_check = check_requirements_txt(repo_name, branch=branch)
+    # The "report" for the chef repo is a dict of checks and data
+    report = {
+        'repo_name': repo_name,
+        'branch': branch,
+    }
+
+    # requirements.txt report
+    requirements_check = check_requirements_txt(repo_name, branch=branch)
+    report['requirements_check'] = requirements_check
+
+    # sushichef.py report
+    sushichef_check = check_sushichef_py(repo_name, branch=branch)
+    report['sushichef_check'] = sushichef_check
 
     # cloc
     cloc_data = run_cloc_in_repo(repo_name)
-    cloc_data.pop('SUM')
-    cloc_data.pop('header')
+    report['cloc_data'] = cloc_data
 
-    if printheader:
-        print(
-            'repo_name'.ljust(MAX_REPO_NAME_LEN), '\t',
-            'requirements.txt', '\t',
-            'sushichef.py', '\t',
-            'Python files', '\t',
-            'Python lines', '\t',
-            'JavaScript', '\t',
-            'Markdown', '\t',
-            'JSON', '\t',
-            'HTML', '\t',
-            'CSS',
-        )
-    print(
-        repo_name.ljust(MAX_REPO_NAME_LEN), '\t',
-        reqs_check['verdict'].ljust(17), '\t',
-        '⬆️', '\t',
-        cloc_data.get('Python', {}).get('nFiles', ''), '\t',
-        cloc_data.get('Python', {}).get('code', ''), '\t',
-        cloc_data.get('JavaScript', {}).get('code', ''), '\t',
-        cloc_data.get('Markdown', {}).get('code', ''), '\t',
-        cloc_data.get('JSON', {}).get('code', ''), '\t',
-        cloc_data.get('HTML', {}).get('code', ''), '\t',
-        cloc_data.get('HTML', {}).get('code', '')
-    )
-    interesting_keys = [key for key in cloc_data.keys() if key not in CODE_KINDS]
-    if interesting_keys:
-        print(blue('interesting_keys=' + str(interesting_keys)))
+    if printing:
+        print_code_reports([report])
+
+    return report
 
 
 @task
-def analyze_chef_repos(fast=False):
+def analyze_chef_repos():
     """
-    Print report about all sushi chef repos (forks, branches, PRs, issues).
+    Ruch chef repo convention checks on all repos (based on local code checkout).
     """
     chef_repos = get_chef_repos()
+    reports = []
     for i, chef_repo in enumerate(chef_repos):
         organization = chef_repo.owner.login
         repo_name = chef_repo.name
-        printheader = True if i == 0 else False
-        analyze_chef_repo(None, repo_name=repo_name, organization=organization, branch='master', printheader=printheader)
-        # check_requirements_txt(repo_name)
-
-    # print_report_for_github_repos(chef_repos, fast=fast)
-
-
-@task
-def analyze_pipeline_repos(fast=False):
-    """
-    Print report about all the github repos related to the Content Pipeline.
-    """
-    pipeline_repos = get_pipeline_repos()
+        report = analyze_chef_repo(None, repo_name=repo_name, organization=organization, branch='master', printing=False)
+        reports.append(report)
+    print_code_reports(reports)
 
 
 
-# CHEF REPO CONVENTION CHECKERS
+# CHEF REPO CONVENTION CHECKS
 ################################################################################
 
 def check_requirements_txt(repo_name, branch='master'):
@@ -135,8 +119,10 @@ def check_requirements_txt(repo_name, branch='master'):
 
         # compare with version in requirements.txt
         with open(requirements_txt, 'r') as reqsf:
+            found = False
             for req in requirements.parse(reqsf):
                 if req.name.lower() == 'ricecooker':
+                    found = True
                     if not req.specs:
                         return {'verdict':'✅ *'} # not pinned so will be latest
                     else:
@@ -145,15 +131,100 @@ def check_requirements_txt(repo_name, branch='master'):
                             if version == latest_ricecooker_version:
                                 return {'verdict': '✅'}   # latest and greatest
                             if version != latest_ricecooker_version:
-                                return {'verdict': version + ' ⬆️'}    # upgrade
+                                return {        
+                                    'verdict': version + ' ⬆️',  # needs upgrade
+                                    'comment': 'Ricecooker needs to be updated',
+                                }    
                         else:
                             return {'verdict':'✅ >='}      # >= means is latest
+            if not found:
+                return {'verdict':'❌'}
 
 
 def check_sushichef_py(repo_name, branch='master'):
+    """
+    Check if the chef repo contains a file called `sushichef.py` and also report
+    on other python files found in the repo.
+    """
     chef_repo_dir = os.path.join(CHEF_REPOS_DIR, repo_name)
-    pass
+    all_files = os.listdir(chef_repo_dir)
+    py_files = [f for f in all_files if f.endswith('.py')]
 
+    subreport = {}
+    if 'sushichef.py' in py_files:
+        subreport['verdict'] = '✅'
+        py_files.remove('sushichef.py')
+    else:
+        subreport['verdict'] = '❌'
+    if py_files:
+        subreport['comment'] = 'Python files: ' + ', '.join(py_files)
+    return subreport
+
+
+
+# REPORT HELPERS
+################################################################################
+
+def rget(dict_obj, attrpath):
+    """
+    A fancy version of `get` that allows getting dot-separated nested attributes
+    like `license.license_name` for use in tree comparisons attribute mappings.
+    This code is inspired by solution in https://stackoverflow.com/a/31174427.
+    """
+    def _getnoerrors(dict_obj, attr):
+        """
+        Like regular get but will no raise if `dict_obj` is None.
+        """
+        if dict_obj is None:
+            return None
+        return dict_obj.get(attr)
+    return functools.reduce(_getnoerrors, [dict_obj] + attrpath.split('.'))
+
+
+def print_code_reports(reports):
+    """
+    Print a table with the attributes REPORT_FIELDS_TO_PRINT from the `report`s.
+    """
+    # 0. compute max length of each column so that the table will look nice
+    max_lens = {}
+    for header, attrpath in REPORT_FIELDS_TO_PRINT.items():
+        lens = [len(header)]
+        for report in reports:
+            val = rget(report, attrpath)
+            val_str = str(val) if val else ''
+            lens.append(len(val_str))
+        max_lens[header] = max(lens)
+
+    # 1. print header line
+    header_strs = []
+    for header in REPORT_FIELDS_TO_PRINT.keys():
+        max_len = max_lens[header]
+        header_str = header.ljust(max_len)
+        header_strs.append(header_str)
+    header_strs.append('Comments')
+    print('\t'.join(header_strs))
+
+    # 2. print report lines
+    for report in reports:
+
+        # extract comments from any subreports
+        comments = []
+        for subreport in report.values():
+            if 'comment' in subreport:
+                comments.append(subreport['comment'])
+        combined_comments = '; '.join(comments)
+
+        report_strs = []
+        for header, attrpath in REPORT_FIELDS_TO_PRINT.items():
+            max_len = max_lens[header]
+            val = rget(report, attrpath)
+            val_str = str(val) if val else ''
+            report_str = val_str.ljust(max_len)
+            if '⬆️' in report_str:
+                report_str += ' '
+            report_strs.append(report_str)
+        report_strs.append(combined_comments)
+        print('\t'.join(report_strs))
 
 
 
@@ -162,14 +233,15 @@ def check_sushichef_py(repo_name, branch='master'):
 
 def run_cloc_in_repo(repo_name):
     try:
-        local('which cloc')
+        with hide('running', 'stdout', 'stderr'):
+            local('which cloc')
     except FabricException:
         puts(red('command line tool  cloc  not found. Please install cloc.'))
         return
     chef_repo_dir = os.path.join(CHEF_REPOS_DIR, repo_name)
     # json tempfile file to store cloc output
     with tempfile.NamedTemporaryFile(suffix='.json') as tmpf:
-        with lcd(chef_repo_dir):
+        with lcd(chef_repo_dir), hide('running', 'stdout', 'stderr'):
             local('cloc --exclude-dir=venv . --json > ' + tmpf.name)
         with open(tmpf.name) as jsonf:
             cloc_data = json.load(jsonf)
@@ -228,8 +300,8 @@ def local_update_chef(nickname, repo_name=None, cwd=None, branch='master'):
     if repo_name is None:
         repo_name = 'sushi-chef-' + nickname
     chef_repo_dir = os.path.join(CHEF_REPOS_DIR, repo_name)
-    with lcd(chef_repo_dir):
+    puts(green('Updating ' + chef_repo_dir + ' to branch ' + branch))
+    with lcd(chef_repo_dir), hide('running', 'stdout', 'stderr'):
         local('git fetch origin  ' + branch)
         local('git checkout ' + branch)
         local('git reset --hard origin/' + branch)
-
