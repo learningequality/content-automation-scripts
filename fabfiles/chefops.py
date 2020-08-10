@@ -72,7 +72,7 @@ def run_chef(nickname, repo_name=None, nohup=False, prfx=None, args='', cwd=None
 ################################################################################
 
 @task
-def setup_chef(nickname, repo_name=None, cwd=None, organization='learningequality', branch_name='master'):
+def setup_chef(nickname, repo_name=None, cwd=None, organization='learningequality', branch='master'):
     """
     Git-clone, setup virtualenv, and pip-install the the chef `nickname`.
     The source code for the chef is assumed to be taken from the github repo
@@ -97,7 +97,7 @@ def setup_chef(nickname, repo_name=None, cwd=None, organization='learningequalit
 
         # checkout the desired branch
         with cd(chef_repo_dir):
-            sudo('git checkout ' + branch_name, user=CHEF_USER)
+            sudo('git checkout ' + branch, user=CHEF_USER)
         puts(green('Setup code from ' + github_http_url + ' in ' + chef_repo_dir))
 
         # setup python virtualenv
@@ -125,7 +125,7 @@ def unsetup_chef(nickname, repo_name=None):
 
 
 @task
-def update_chef(nickname, repo_name=None, cwd=None, branch_name='master'):
+def update_chef(nickname, repo_name=None, cwd=None, branch='master'):
     """
     Run pull -f in the chef repo to update the chef code to the lastest version.
     """
@@ -134,9 +134,9 @@ def update_chef(nickname, repo_name=None, cwd=None, branch_name='master'):
     chef_repo_dir = os.path.join(DATA_DIR, repo_name)
     chef_root_dir = os.path.join(chef_repo_dir, cwd) if cwd else chef_repo_dir
     with cd(chef_repo_dir):
-        sudo('git fetch origin  ' + branch_name, user=CHEF_USER)
-        sudo('git checkout ' + branch_name, user=CHEF_USER)
-        sudo('git reset --hard origin/' + branch_name, user=CHEF_USER)
+        sudo('git fetch origin  ' + branch, user=CHEF_USER)
+        sudo('git checkout ' + branch, user=CHEF_USER)
+        sudo('git reset --hard origin/' + branch, user=CHEF_USER)
 
     # setup python virtualenv
     if not exists(os.path.join(chef_root_dir, 'venv')):
