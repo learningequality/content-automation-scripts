@@ -85,17 +85,25 @@ def analyze_chef_repo(nickname, repo_name=None, organization='learningequality',
 
 
 @task
-def analyze_chef_repos():
+def analyze_chef_repos(allbranches=False):
     """
     Ruch chef repo convention checks on all repos (based on local code checkout).
     """
+    allbranches = (allbranches and allbranches.lower() == 'true')
     chef_repos = get_chef_repos()
     reports = []
     for i, chef_repo in enumerate(chef_repos):
         organization = chef_repo.owner.login
         repo_name = chef_repo.name
-        report = analyze_chef_repo(None, repo_name=repo_name, organization=organization, branch='master', printing=False)
-        reports.append(report)
+        if allbranches:
+            branches = list(chef_repo.get_branches())
+            for branch in branches:
+                report = analyze_chef_repo(None, repo_name=repo_name, organization=organization, branch=branch.name, printing=False)
+                reports.append(report)
+        else:
+            report = analyze_chef_repo(None, repo_name=repo_name, organization=organization, branch='master', printing=False)
+            reports.append(report)
+
     print_code_reports(reports)
 
 

@@ -157,7 +157,7 @@ appropriate host string to connect to a given host `fab -R vader  shell`.
 
 # 2. Remote chef execution
 
-General chef repo conventions: 
+General chef repo conventions:
   - Git repo names follow the convention `sushi-chef-{nickname}`,
     where `{nickname}` is a hyphen-separated unique name.
   - The content integration script is called `sushichef.py`.
@@ -216,3 +216,39 @@ This will create the repository https://github.com/learningequality/sushi-chef-n
 and enable read/write access to this repo for the "Sushi Chefs" team.
 The `source_url` argument is optional, but it's nice to have.
 This command requires a github API key to be present in the `credentials/` dir.
+
+
+
+GitHub repository checks
+------------------------
+Print report about all sushi chef repos (forks, branches, PRs, issues):
+
+    fab list_chef_repos
+
+
+The same repo report can be performed for the non-chef repos related to the Content Pipeline using:
+
+    fab list_pipeline_repos
+
+
+
+Chef code reports
+-----------------
+Use the following commands to check the general chef repo conventions:
+
+    fab analyze_chef_repo:<nickname>
+
+This command will do a local clone of the chef repo to the directory `chefrepos`
+and perform some basic checks (is requirements.txt defined? is chef script called sushichef.py?)
+and count the lines of code in the repo.
+
+To run the code analysis on all chef repos, use
+
+    fab analyze_chef_repos
+
+or to check all branches in the chef repos use this command:
+
+    fab analyze_chef_repos:allbranches=true
+
+The output of all these commands are tab-separated so they can be pasted into
+a spreadsheet for further processing.
