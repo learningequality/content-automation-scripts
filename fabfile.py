@@ -57,7 +57,7 @@ from fabfiles.catalogservers import check_catalog_channels
 
 # GITHUB
 ################################################################################
-from fabfiles.github import create_github_repo, list_chef_repos, list_pipeline_repos
+from fabfiles.github import clone_chef_repos, create_github_repo, list_chef_repos, list_pipeline_repos
 
 
 # CODE REPORTS

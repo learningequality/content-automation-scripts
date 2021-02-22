@@ -1,6 +1,8 @@
 from github import Github
 import json
+import os
 import re
+import subprocess
 
 from fabric.api import task
 from fabric.colors import red, green, blue, yellow
@@ -84,6 +86,13 @@ def list_pipeline_repos(fast=False):
     print_report_for_github_repos(pipeline_repos, fast=fast)
 
 
+@task
+def clone_chef_repos(root_dir):
+    assert os.path.exists(root_dir), "Directory to clone into does not exist: {}".format(root_dir)
+    pipeline_repos = get_chef_repos()
+    os.chdir(root_dir)
+    for repo in pipeline_repos:
+        subprocess.call(['git', 'clone', repo.html_url])
 
 
 # GITHUB REPOS INFO
