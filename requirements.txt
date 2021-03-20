@@ -1,7 +1,7 @@
 # fab-classic is a Fabric fork with py3 support, faithful to the py27 API
 fab-classic==1.18.0
 dnspython==1.15.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 requests==2.24.0
 PyGithub==1.51
 requirements-parser==0.2.0
